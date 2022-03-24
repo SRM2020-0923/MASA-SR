@@ -357,8 +357,8 @@ class MASA(nn.Module):
         py = h // self.lr_block_size
         k_x = w // px                     # k_x = 8
         k_y = h // py
-        _, _, h, w = ref_down.size()      # e.g. ref_down: (256 x 256)
-        diameter_x = 2 * int(w // (2 * px) * self.ref_down_block_size) + 1     # diameter: 2 * (256 // (2 * 16)) * 1.5 + 1 = 25
+        _, _, h, w = ref_down.size()      # ref_down: (128 x 128)
+        diameter_x = 2 * int(w // (2 * px) * self.ref_down_block_size) + 1     # diameter: 2 * (128 // (2 * 16)) * 1.5 + 1 = 13
         diameter_y = 2 * int(h // (2 * py) * self.ref_down_block_size) + 1
 
         lrsr = F.interpolate(lr, scale_factor=self.scale, mode='bicubic')    # scale = 4, lrsr: (512 x 512)
@@ -368,9 +368,9 @@ class MASA(nn.Module):
         fea_ref_l = self.enc(ref)
 
         N, C, H, W = fea_lr_l[0].size()   # 9, 64, 128, 128
-        _, _, Hr, Wr = fea_reflr_l[0].size()  # _, _, 256, 256
+        _, _, Hr, Wr = fea_reflr_l[0].size()  # _, _, 128, 128
 
-        lr_patches = F.pad(fea_lr_l[0], pad=(1, 1, 1, 1), mode='replicate')  # lr_patches's size: (9, 64, 129, 129)
+        lr_patches = F.pad(fea_lr_l[0], pad=(1, 1, 1, 1), mode='replicate')  # lr_patches's size: (9, 64, 130, 130)
         lr_patches = F.unfold(lr_patches, kernel_size=(k_y + 2, k_x + 2), padding=(0, 0),
                               stride=(k_y, k_x))  # [N, C*(k_y+2)*(k_x+2), py*px].  [9, 6400, 256]
         lr_patches = lr_patches.view(N, C, k_y + 2, k_x + 2, py * px).permute(0, 4, 1, 2, 3)  # [N, py*px, C, k_y+2, k_x+2]
