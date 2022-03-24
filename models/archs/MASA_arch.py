@@ -351,28 +351,28 @@ class MASA(nn.Module):
 
         return ind_y, ind_x
 
-    def forward(self, lr, ref, ref_down, gt=None):
+    def forward(self, lr, ref, ref_down, gt=None):  # lr: (128 x 128), ref: (512 x 512)
         _, _, h, w = lr.size()
-        px = w // self.lr_block_size
+        px = w // self.lr_block_size       # block_size: 8, px = 16
         py = h // self.lr_block_size
-        k_x = w // px
+        k_x = w // px                     # k_x = 8
         k_y = h // py
-        _, _, h, w = ref_down.size()
-        diameter_x = 2 * int(w // (2 * px) * self.ref_down_block_size) + 1
+        _, _, h, w = ref_down.size()      # e.g. ref_down: (256 x 256)
+        diameter_x = 2 * int(w // (2 * px) * self.ref_down_block_size) + 1     # diameter: 2 * (256 // (2 * 16)) * 1.5 + 1 = 25
         diameter_y = 2 * int(h // (2 * py) * self.ref_down_block_size) + 1
 
-        lrsr = F.interpolate(lr, scale_factor=self.scale, mode='bicubic')
+        lrsr = F.interpolate(lr, scale_factor=self.scale, mode='bicubic')    # scale = 4, lrsr: (512 x 512)
 
-        fea_lr_l = self.enc(lr)
+        fea_lr_l = self.enc(lr)      # [fea_l1, fea_l2, fea_l3]. with size: 1x, 0.5x, 0.25x
         fea_reflr_l = self.enc(ref_down)
         fea_ref_l = self.enc(ref)
 
-        N, C, H, W = fea_lr_l[0].size()
-        _, _, Hr, Wr = fea_reflr_l[0].size()
+        N, C, H, W = fea_lr_l[0].size()   # 9, 64, 128, 128
+        _, _, Hr, Wr = fea_reflr_l[0].size()  # _, _, 256, 256
 
-        lr_patches = F.pad(fea_lr_l[0], pad=(1, 1, 1, 1), mode='replicate')
+        lr_patches = F.pad(fea_lr_l[0], pad=(1, 1, 1, 1), mode='replicate')  # lr_patches's size: (9, 64, 129, 129)
         lr_patches = F.unfold(lr_patches, kernel_size=(k_y + 2, k_x + 2), padding=(0, 0),
-                              stride=(k_y, k_x))  # [N, C*(k_y+2)*(k_x+2), py*px]
+                              stride=(k_y, k_x))  # [N, C*(k_y+2)*(k_x+2), py*px].  [9, 6400, 256]
         lr_patches = lr_patches.view(N, C, k_y + 2, k_x + 2, py * px).permute(0, 4, 1, 2, 3)  # [N, py*px, C, k_y+2, k_x+2]
 
         ## find the corresponding ref patch for each lr patch
