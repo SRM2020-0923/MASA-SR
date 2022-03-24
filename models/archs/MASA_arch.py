@@ -292,25 +292,25 @@ class MASA(nn.Module):
         return sorted_corr, ind_l
 
     def search(self, lr, reflr, ks=3, pd=1, stride=1, dilations=[1, 2, 4]):
-        # lr: [N, p*p, C, k_y, k_x]
-        # reflr: [N, C, Hr, Wr]
+        # lr: [N, p*p, C, k_y, k_x].  [9, 256, 64, 10, 10]
+        # reflr: [N, C, Hr, Wr].    [9, 64, 128, 128]
 
         N, C, Hr, Wr = reflr.size()
         _, _, _, k_y, k_x = lr.size()
-        x, y = k_x // 2, k_y // 2
+        x, y = k_x // 2, k_y // 2    # x = 5, y = 5  
         corr_sum = 0
         for i, dilation in enumerate(dilations):
             reflr_patches = F.unfold(reflr, kernel_size=(ks, ks), padding=dilation, stride=stride, dilation=dilation)  # [N, C*ks*ks, Hr*Wr]
             lr_patches = lr[:, :, :, y - dilation: y + dilation + 1: dilation,
-                                     x - dilation: x + dilation + 1: dilation]  # [N, p*p, C, ks, ks]
-            lr_patches = lr_patches.contiguous().view(N, -1, C * ks * ks)  # [N, p*p, C*ks*ks]
+                                     x - dilation: x + dilation + 1: dilation]  # [N, p*p, C, ks, ks].  [9, 256, 64, 3, 3]
+            lr_patches = lr_patches.contiguous().view(N, -1, C * ks * ks)  # [N, p*p, C*ks*ks].   [9, 256, 576]
 
             lr_patches = F.normalize(lr_patches, dim=2)
             reflr_patches = F.normalize(reflr_patches, dim=1)
             corr = torch.bmm(lr_patches, reflr_patches)  # [N, p*p, Hr*Wr]
             corr_sum = corr_sum + corr
 
-        sorted_corr, ind_l = torch.topk(corr_sum, self.num_nbr, dim=-1, largest=True, sorted=True)  # [N, p*p, num_nbr]
+        sorted_corr, ind_l = torch.topk(corr_sum, self.num_nbr, dim=-1, largest=True, sorted=True)  # [N, p*p, num_nbr]. [9, 256, 1]
 
         return sorted_corr, ind_l
 
@@ -377,7 +377,7 @@ class MASA(nn.Module):
 
         ## find the corresponding ref patch for each lr patch
         sorted_corr, ind_l = self.search(lr_patches, fea_reflr_l[0],
-                                         ks=3, pd=1, stride=1, dilations=self.dilations)
+                                         ks=3, pd=1, stride=1, dilations=self.dilations)   # [9, 256, 64, 10, 10] and [9, 64, 128, 128]
 
         ## crop corresponding ref patches
         index = ind_l[:, :, 0]  # [N, py*px]
