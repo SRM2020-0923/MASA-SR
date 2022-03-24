@@ -392,11 +392,11 @@ class MASA(nn.Module):
 
         mask = (idx_x1 < 0).long()   
         idx_x1 = idx_x1 * (1 - mask)   
-        idx_x2 = idx_x2 * (1 - mask) + (diameter_x + 1) * mask   
+        idx_x2 = idx_x2 * (1 - mask) + (diameter_x + 1) * mask   # 将小于7的置为0，其他的减去7得index_x1，将index_x1置为0的位置index_x2置为14，其他的加7
 
         mask = (idx_x2 > Wr - 1).long()   
         idx_x2 = idx_x2 * (1 - mask) + (Wr - 1) * mask   
-        idx_x1 = idx_x1 * (1 - mask) + (idx_x2 - (diameter_x + 1)) * mask  
+        idx_x1 = idx_x1 * (1 - mask) + (idx_x2 - (diameter_x + 1)) * mask  # 将大于127的index_x2置为127，将index_x2置为127的位置index_x1置为113
 
         mask = (idx_y1 < 0).long()
         idx_y1 = idx_y1 * (1 - mask)
