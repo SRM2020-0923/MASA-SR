@@ -385,18 +385,18 @@ class MASA(nn.Module):
         index = ind_l[:, :, 0]  # [N, py*px]
         idx_x = index % Wr
         idx_y = index // Wr
-        idx_x1 = idx_x - diameter_x//2 - 1
+        idx_x1 = idx_x - diameter_x//2 - 1  
         idx_x2 = idx_x + diameter_x//2 + 1
         idx_y1 = idx_y - diameter_y//2 - 1
         idx_y2 = idx_y + diameter_y//2 + 1
 
-        mask = (idx_x1 < 0).long()
-        idx_x1 = idx_x1 * (1 - mask)
-        idx_x2 = idx_x2 * (1 - mask) + (diameter_x + 1) * mask
+        mask = (idx_x1 < 0).long()   
+        idx_x1 = idx_x1 * (1 - mask)   
+        idx_x2 = idx_x2 * (1 - mask) + (diameter_x + 1) * mask   
 
-        mask = (idx_x2 > Wr - 1).long()
-        idx_x2 = idx_x2 * (1 - mask) + (Wr - 1) * mask
-        idx_x1 = idx_x1 * (1 - mask) + (idx_x2 - (diameter_x + 1)) * mask
+        mask = (idx_x2 > Wr - 1).long()   
+        idx_x2 = idx_x2 * (1 - mask) + (Wr - 1) * mask   
+        idx_x1 = idx_x1 * (1 - mask) + (idx_x2 - (diameter_x + 1)) * mask  
 
         mask = (idx_y1 < 0).long()
         idx_y1 = idx_y1 * (1 - mask)
