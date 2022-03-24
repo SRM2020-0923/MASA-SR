@@ -311,7 +311,7 @@ class MASA(nn.Module):
             corr_sum = corr_sum + corr
 
         sorted_corr, ind_l = torch.topk(corr_sum, self.num_nbr, dim=-1, largest=True, sorted=True)  # [N, p*p, num_nbr]. [9, 256, 1]
-        # 
+        # sorted_corr represents highest similirity score, ind_l 代表lr的一个patch与第i个ref的patch相似最高
         return sorted_corr, ind_l
 
     def transfer(self, fea, index, soft_att, ks=3, pd=1, stride=1):
