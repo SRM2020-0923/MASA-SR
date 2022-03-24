@@ -378,7 +378,9 @@ class MASA(nn.Module):
         ## find the corresponding ref patch for each lr patch
         sorted_corr, ind_l = self.search(lr_patches, fea_reflr_l[0],
                                          ks=3, pd=1, stride=1, dilations=self.dilations)   # [9, 256, 64, 10, 10] and [9, 64, 128, 128]
-
+        
+        # sorted_corr represents highest similirity score, ind_l 代表lr的一个patch与第i个ref的patch相似最高
+        
         ## crop corresponding ref patches
         index = ind_l[:, :, 0]  # [N, py*px]
         idx_x = index % Wr
