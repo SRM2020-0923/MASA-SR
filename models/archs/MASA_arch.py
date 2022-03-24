@@ -292,7 +292,7 @@ class MASA(nn.Module):
         return sorted_corr, ind_l
 
     def search(self, lr, reflr, ks=3, pd=1, stride=1, dilations=[1, 2, 4]):
-        # lr: [N, p*p, C, k_y, k_x].  [9, 256, 64, 10, 10]
+        # lr: [N, p*p, C, k_y, k_x].  [9, 256, 64, 10, 10].  这里为什么是10，也是为什么要replicate padding，因为，dilation=4时，lr_patches取得的pixel包括[10, 10]这个pixel
         # reflr: [N, C, Hr, Wr].    [9, 64, 128, 128]
 
         N, C, Hr, Wr = reflr.size()
@@ -307,11 +307,11 @@ class MASA(nn.Module):
 
             lr_patches = F.normalize(lr_patches, dim=2)
             reflr_patches = F.normalize(reflr_patches, dim=1)
-            corr = torch.bmm(lr_patches, reflr_patches)  # [N, p*p, Hr*Wr]
+            corr = torch.bmm(lr_patches, reflr_patches)  # [N, p*p, Hr*Wr].  对于不同通道的同一patch进行卷积和，每个pixel就是两个patch的相似程度
             corr_sum = corr_sum + corr
 
         sorted_corr, ind_l = torch.topk(corr_sum, self.num_nbr, dim=-1, largest=True, sorted=True)  # [N, p*p, num_nbr]. [9, 256, 1]
-
+        # 
         return sorted_corr, ind_l
 
     def transfer(self, fea, index, soft_att, ks=3, pd=1, stride=1):
