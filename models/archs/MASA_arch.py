@@ -272,8 +272,8 @@ class MASA(nn.Module):
         return torch.gather(input, dim, index)  # [N, C*k*k, Hi*Wi]
 
     def search_org(self, lr, reflr, ks=3, pd=1, stride=1):
-        # lr: [N, C, H, W]
-        # reflr: [N, C, Hr, Wr]
+        # lr: [N, C, H, W].  [N*py*px, C, k_y+2, k_x+2].  [9*16*16, 64, 8+2, 8+2]
+        # reflr: [N, C, Hr, Wr].  [N*py*px, diameter_y+2, diameter_x+2, C].  [9*16*16, 13+2, 13+2, 64]
 
         batch, c, H, W = lr.size()
         _, _, Hr, Wr = reflr.size()
@@ -406,11 +406,11 @@ class MASA(nn.Module):
         idx_y2 = idx_y2 * (1 - mask) + (Hr - 1) * mask
         idx_y1 = idx_y1 * (1 - mask) + (idx_y2 - (diameter_y + 1)) * mask
 
-        ind_y_x1, ind_x_x1 = self.make_grid(idx_x1, idx_y1, diameter_x+2, diameter_y+2, 1)
+        ind_y_x1, ind_x_x1 = self.make_grid(idx_x1, idx_y1, diameter_x+2, diameter_y+2, 1) # [518400], 9 * 16 * 16 * 15 * 15
         ind_y_x2, ind_x_x2 = self.make_grid(idx_x1, idx_y1, diameter_x+2, diameter_y+2, 2)
         ind_y_x4, ind_x_x4 = self.make_grid(idx_x1, idx_y1, diameter_x+2, diameter_y+2, 4)
 
-        ind_b = torch.repeat_interleave(torch.arange(0, N, dtype=torch.long, device=idx_x1.device), py * px * (diameter_y+2) * (diameter_x+2))
+        ind_b = torch.repeat_interleave(torch.arange(0, N, dtype=torch.long, device=idx_x1.device), py * px * (diameter_y+2) * (diameter_x+2)) # [518400]
         ind_b_x2 = torch.repeat_interleave(torch.arange(0, N, dtype=torch.long, device=idx_x1.device), py * px * ((diameter_y+2)*2) * ((diameter_x+2)*2))
         ind_b_x4 = torch.repeat_interleave(torch.arange(0, N, dtype=torch.long, device=idx_x1.device), py * px * ((diameter_y+2)*4) * ((diameter_x+2)*4))
 
