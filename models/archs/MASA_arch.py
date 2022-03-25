@@ -332,7 +332,7 @@ class MASA(nn.Module):
         # out_fold = out_fold / (ks*ks) * soft_att_resize
         return out_fold
 
-    def make_grid(self, idx_x1, idx_y1, diameter_x, diameter_y, s):  # [N, py*px], [9, 256], 13, (1,2,4)
+    def make_grid(self, idx_x1, idx_y1, diameter_x, diameter_y, s):  # [N, py*px], [9, 256], 15, (1,2,4)
         idx_x1 = idx_x1 * s
         idx_y1 = idx_y1 * s
         idx_x1 = idx_x1.view(-1, 1).repeat(1, diameter_x * s)
@@ -345,8 +345,8 @@ class MASA(nn.Module):
         for i in range(idx_x1.size(0)):     # 0~9
             grid_y, grid_x = torch.meshgrid(idx_y1[i], idx_x1[i])
             ind_y_l.append(grid_y.contiguous().view(-1))
-            ind_x_l.append(grid_x.contiguous().view(-1))
-        ind_y = torch.cat(ind_y_l)
+            ind_x_l.append(grid_x.contiguous().view(-1))    # [225]
+        ind_y = torch.cat(ind_y_l)   # [9, 225]
         ind_x = torch.cat(ind_x_l)
 
         return ind_y, ind_x
