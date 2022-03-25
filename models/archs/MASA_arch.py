@@ -338,15 +338,15 @@ class MASA(nn.Module):
         idx_x1 = idx_x1.view(-1, 1).repeat(1, diameter_x * s)
         idx_y1 = idx_y1.view(-1, 1).repeat(1, diameter_y * s)
         idx_x1 = idx_x1 + torch.arange(0, diameter_x * s, dtype=torch.long, device=idx_x1.device).view(1, -1)
-        idx_y1 = idx_y1 + torch.arange(0, diameter_y * s, dtype=torch.long, device=idx_y1.device).view(1, -1)
+        idx_y1 = idx_y1 + torch.arange(0, diameter_y * s, dtype=torch.long, device=idx_y1.device).view(1, -1) # [2304, 15]
 
         ind_y_l = []
         ind_x_l = []
         for i in range(idx_x1.size(0)):     # 0~9
-            grid_y, grid_x = torch.meshgrid(idx_y1[i], idx_x1[i])
+            grid_y, grid_x = torch.meshgrid(idx_y1[i], idx_x1[i])    # [15, 15]
             ind_y_l.append(grid_y.contiguous().view(-1))
             ind_x_l.append(grid_x.contiguous().view(-1))    # [225]
-        ind_y = torch.cat(ind_y_l)   # [9, 225]
+        ind_y = torch.cat(ind_y_l)   # [518400]
         ind_x = torch.cat(ind_x_l)
 
         return ind_y, ind_x
