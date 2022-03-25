@@ -273,20 +273,20 @@ class MASA(nn.Module):
 
     def search_org(self, lr, reflr, ks=3, pd=1, stride=1):
         # lr: [N, C, H, W].  [N*py*px, C, k_y+2, k_x+2].  [9*16*16, 64, 8+2, 8+2]
-        # reflr: [N, C, Hr, Wr].  [N*py*px, diameter_y+2, diameter_x+2, C].  [9*16*16, 13+2, 13+2, 64]
+        # reflr: [N, C, Hr, Wr].  [N*py*px, C, diameter_y+2, diameter_x+2].  [9*16*16, 64, 13+2, 13+2]
 
         batch, c, H, W = lr.size()
         _, _, Hr, Wr = reflr.size()
 
-        reflr_unfold = F.unfold(reflr, kernel_size=(ks, ks), padding=0, stride=stride)  # [N, C*k*k, Hr*Wr]
+        reflr_unfold = F.unfold(reflr, kernel_size=(ks, ks), padding=0, stride=stride)  # [N, C*k*k, Hr*Wr]. [9*16*16, 64*3*3, 13*13]
         lr_unfold = F.unfold(lr, kernel_size=(ks, ks), padding=0, stride=stride)
-        lr_unfold = lr_unfold.permute(0, 2, 1)  # [N, H*W, C*k*k]
+        lr_unfold = lr_unfold.permute(0, 2, 1)  # [N, H*W, C*k*k].  [9*16*16, 8*8, 64*3*3]
 
         lr_unfold = F.normalize(lr_unfold, dim=2)
         reflr_unfold = F.normalize(reflr_unfold, dim=1)
 
-        corr = torch.bmm(lr_unfold, reflr_unfold)  # [N, H*W, Hr*Wr]
-        corr = corr.view(batch, H-2, W-2, (Hr-2)*(Wr-2))
+        corr = torch.bmm(lr_unfold, reflr_unfold)  # [N, H*W, Hr*Wr].  [9*16*16, 8*8, 13*13]
+        corr = corr.view(batch, H-2, W-2, (Hr-2)*(Wr-2))    # [9*16*16, 8, 8, 13*13]
         sorted_corr, ind_l = torch.topk(corr, self.num_nbr, dim=-1, largest=True, sorted=True)  # [N, H, W, num_nbr]
 
         return sorted_corr, ind_l
@@ -422,9 +422,9 @@ class MASA(nn.Module):
         ## calculate correlation between lr patches and their corresponding ref patches
         lr_patches = lr_patches.contiguous().view(N*py*px, C, k_y+2, k_x+2)
         corr_all_l, index_all_l = self.search_org(lr_patches, reflr_patches,
-                                              ks=self.psize, pd=self.psize // 2, stride=1)
-        index_all = index_all_l[:, :, :, 0]  # [N*p*p, k_y, k_x]
-        soft_att_all = corr_all_l[:, :, :, 0:1].permute(0, 3, 1, 2)  # [N*p*p, 1, k_y, k_x]
+                                              ks=self.psize, pd=self.psize // 2, stride=1) 
+        index_all = index_all_l[:, :, :, 0]  # [N*p*p, k_y, k_x]. [9*16*16, 8, 8], 论文中的index_maps
+        soft_att_all = corr_all_l[:, :, :, 0:1].permute(0, 3, 1, 2)  # [N*p*p, 1, k_y, k_x]. [9*16*16, 8, 8, 1] -> [9*16*16, 1, 8, 8]
 
         warp_ref_patches_x1 = self.transfer(ref_patches_x1, index_all, soft_att_all,
                                             ks=self.psize, pd=self.psize // 2, stride=1)  # [N*py*px, C, k_y, k_x]
