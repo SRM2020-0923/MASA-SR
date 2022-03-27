@@ -149,7 +149,7 @@ class DRAM(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, nf, out_chl, n_blks=[1, 1, 1, 1, 1, 1]):
+    def __init__(self, nf, out_chl, n_blks=[1, 1, 1, 1, 1, 1]):    # [2,2,2,12,8,4]
         super(Decoder, self).__init__()
 
         block = functools.partial(ResidualBlock, nf=nf)
