@@ -335,7 +335,7 @@ class MASA(nn.Module):
     def make_grid(self, idx_x1, idx_y1, diameter_x, diameter_y, s):  # [N, py*px], [9, 256], 15, (1,2,4)
         idx_x1 = idx_x1 * s
         idx_y1 = idx_y1 * s
-        idx_x1 = idx_x1.view(-1, 1).repeat(1, diameter_x * s)
+        idx_x1 = idx_x1.view(-1, 1).repeat(1, diameter_x * s)   # [N*py*px, 15].  [N*py*px, 30]
         idx_y1 = idx_y1.view(-1, 1).repeat(1, diameter_y * s)
         idx_x1 = idx_x1 + torch.arange(0, diameter_x * s, dtype=torch.long, device=idx_x1.device).view(1, -1) # 9 * 16 * 16 = 2304
         idx_y1 = idx_y1 + torch.arange(0, diameter_y * s, dtype=torch.long, device=idx_y1.device).view(1, -1) # [2304, 15]
@@ -365,7 +365,7 @@ class MASA(nn.Module):
 
         fea_lr_l = self.enc(lr)      # [fea_l1, fea_l2, fea_l3]. with size: 1x, 0.5x, 0.25x
         fea_reflr_l = self.enc(ref_down)
-        fea_ref_l = self.enc(ref)
+        fea_ref_l = self.enc(ref)    # [512x512, 256x256, 128x128] 
 
         N, C, H, W = fea_lr_l[0].size()   # 9, 64, 128, 128
         _, _, Hr, Wr = fea_reflr_l[0].size()  # _, _, 128, 128
