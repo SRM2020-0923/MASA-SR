@@ -326,7 +326,7 @@ class MASA(nn.Module):
         divisor = torch.ones_like(out_unfold)
 
         _, Hi, Wi = index.size()
-        out_fold = F.fold(out_unfold, output_size=(Hi*scale, Wi*scale), kernel_size=(ks, ks), padding=pd, stride=stride)
+        out_fold = F.fold(out_unfold, output_size=(Hi*scale, Wi*scale), kernel_size=(ks, ks), padding=pd, stride=stride) # [9*16*16, 64, 8, 8]
         divisor = F.fold(divisor, output_size=(Hi*scale, Wi*scale), kernel_size=(ks, ks), padding=pd, stride=stride)
         soft_att_resize = F.interpolate(soft_att, size=(Hi*scale, Wi*scale), mode='bilinear')
         out_fold = out_fold / divisor * soft_att_resize
