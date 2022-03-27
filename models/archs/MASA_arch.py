@@ -260,21 +260,22 @@ class MASA(nn.Module):
                 m.conv_beta.weight.data.zero_()
 
     def bis(self, input, dim, index):
+        # 根据index_maps,将ref重新排序
         # batch index select
-        # input: [N, C*k*k, H*W]
-        # dim: scalar > 0
-        # index: [N, Hi, Wi]
+        # input: [N, C*k*k, H*W].  [9*16*16, 64*3*3, 13*13]
+        # dim: scalar > 0.         dim = 2
+        # index: [N, Hi, Wi].      [9*16*16, 8, 8]. 论文中的index_maps
         views = [input.size(0)] + [1 if i != dim else -1 for i in range(1, len(input.size()))]  # views = [N, 1, -1]
-        expanse = list(input.size())
+        expanse = list(input.size())      # [9*16*16, 64*3*3, 13*13] 
         expanse[0] = -1
-        expanse[dim] = -1  # expanse = [-1, C*k*k, -1]
-        index = index.clone().view(views).expand(expanse)  # [N, Hi, Wi] -> [N, 1, Hi*Wi] - > [N, C*k*k, Hi*Wi]
+        expanse[dim] = -1  # expanse = [-1, C*k*k, -1].   [-1, 64*3*3, -1]  作用是复制64*3*3份
+        index = index.clone().view(views).expand(expanse)  # [N, Hi, Wi] -> [N, 1, Hi*Wi] - > [N, C*k*k, Hi*Wi]. [9*16*16, 8, 8] -> [9*16*16, 1, 8*8] - > [9*16*16, 64*3*3, 8*8]
         return torch.gather(input, dim, index)  # [N, C*k*k, Hi*Wi]
 
     def search_org(self, lr, reflr, ks=3, pd=1, stride=1):
         # lr: [N, C, H, W].  [N*py*px, C, k_y+2, k_x+2].  [9*16*16, 64, 8+2, 8+2]
         # reflr: [N, C, Hr, Wr].  [N*py*px, C, diameter_y+2, diameter_x+2].  [9*16*16, 64, 13+2, 13+2]
-
+        # 将lr_patch拆成3x3的更小patch，与reflr拆成的3x3小patch进行计算相似度
         batch, c, H, W = lr.size()
         _, _, Hr, Wr = reflr.size()
 
@@ -294,7 +295,7 @@ class MASA(nn.Module):
     def search(self, lr, reflr, ks=3, pd=1, stride=1, dilations=[1, 2, 4]):
         # lr: [N, p*p, C, k_y, k_x].  [9, 256, 64, 10, 10].  这里为什么是10，也是为什么要replicate padding，因为，dilation=4时，lr_patches取得的pixel包括[10, 10]这个pixel
         # reflr: [N, C, Hr, Wr].    [9, 64, 128, 128]
-
+        # 将lr拆成的10x10的block，与reflr拆成的3x3的小patch进行计算相似度
         N, C, Hr, Wr = reflr.size()
         _, _, _, k_y, k_x = lr.size()
         x, y = k_x // 2, k_y // 2    # x = 5, y = 5  
@@ -315,13 +316,13 @@ class MASA(nn.Module):
         return sorted_corr, ind_l
 
     def transfer(self, fea, index, soft_att, ks=3, pd=1, stride=1):
-        # fea: [N, C, H, W]
-        # index: [N, Hi, Wi]
-        # soft_att: [N, 1, Hi, Wi]
+        # fea: [N, C, H, W]   [N*py*px, C, (radius_y+1)*2, (radius_x+1)*2]   [9*16*16, 64, 15, 15]
+        # index: [N, Hi, Wi]   [N*p*p, k_y, k_x]].                           [9*16*16, 8, 8]
+        # soft_att: [N, 1, Hi, Wi]   [N*p*p, 1, k_y, k_x]                    [9*16*16, 1, 8, 8]
         scale = stride
 
-        fea_unfold = F.unfold(fea, kernel_size=(ks, ks), padding=0, stride=stride)  # [N, C*k*k, H*W]
-        out_unfold = self.bis(fea_unfold, 2, index)  # [N, C*k*k, Hi*Wi]
+        fea_unfold = F.unfold(fea, kernel_size=(ks, ks), padding=0, stride=stride)  # [N, C*k*k, H*W]. [9*16*16, 64*3*3, 13*13]
+        out_unfold = self.bis(fea_unfold, 2, index)  # [N, C*k*k, Hi*Wi]  [9*16*16, 64*3*3, 8*8]
         divisor = torch.ones_like(out_unfold)
 
         _, Hi, Wi = index.size()
@@ -423,7 +424,7 @@ class MASA(nn.Module):
         lr_patches = lr_patches.contiguous().view(N*py*px, C, k_y+2, k_x+2)
         corr_all_l, index_all_l = self.search_org(lr_patches, reflr_patches,
                                               ks=self.psize, pd=self.psize // 2, stride=1) 
-        index_all = index_all_l[:, :, :, 0]  # [N*p*p, k_y, k_x]. [9*16*16, 8, 8], 论文中的index_maps
+        index_all = index_all_l[:, :, :, 0]  # [N*p*p, k_y, k_x]. [9*16*16, 8, 8], 论文中的index_maps   每个pixel代表每个3x3的小patch与reflr中第i个3x3小patch相似最高
         soft_att_all = corr_all_l[:, :, :, 0:1].permute(0, 3, 1, 2)  # [N*p*p, 1, k_y, k_x]. [9*16*16, 8, 8, 1] -> [9*16*16, 1, 8, 8]
 
         warp_ref_patches_x1 = self.transfer(ref_patches_x1, index_all, soft_att_all,
